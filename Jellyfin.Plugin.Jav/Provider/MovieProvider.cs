@@ -53,7 +53,7 @@ namespace Jellyfin.Plugin.Jav.Provider
         public async Task<MetadataResult<Movie>> GetMetadata(MovieInfo info, CancellationToken cancellationToken)
         {
             var name = Path.GetFileName(info.Path);
-            name = name.Contains('.', Ordinal) ? name[..name.IndexOf('.', Ordinal)] : name;
+            name = name.Contains('.', Ordinal) ? name[..name.LastIndexOf('.')] : name;
             _logger.LogInformation("GetMetadata, name={Name}", name);
             var configuration = Plugin.Instance.Configuration;
             var movie = info.IsAutomated ? info.GetMovie() : null;
