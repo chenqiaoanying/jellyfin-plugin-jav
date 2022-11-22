@@ -1,57 +1,83 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Text.Json.Serialization;
+using System.Xml.Serialization;
 using MediaBrowser.Model.Plugins;
 
 namespace Jellyfin.Plugin.Jav.Configuration;
 
-/// <summary>
-/// The configuration options.
-/// </summary>
-public enum SomeOptions
-{
-    /// <summary>
-    /// Option one.
-    /// </summary>
-    OneOption,
-
-    /// <summary>
-    /// Second option.
-    /// </summary>
-    AnotherOption
-}
-
-/// <summary>
-/// Plugin configuration.
-/// </summary>
 public class PluginConfiguration : BasePluginConfiguration
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="PluginConfiguration"/> class.
-    /// </summary>
-    public PluginConfiguration()
+    public string Version { get; } = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? string.Empty;
+
+    public Backend Backend { get; set; } = new();
+
+    public General General { get; set; } = new();
+
+    public Template Template { get; set; } = new();
+
+    public Replacement Replacement { get; set; } = new();
+}
+
+public class Backend
+{
+    public string Server { get; set; } = "https://api.javtube.internal";
+
+    public string Token { get; set; } = string.Empty;
+}
+
+public class General
+{
+    public int ImageQuality { get; set; } = 100;
+
+    public bool EnableCollectionsBySeries { get; set; }
+
+    public bool EnableChineseSubtitleGenre { get; set; }
+}
+
+public class Template
+{
+    public string TitleTemplate { get; set; } = "{number} {title}";
+
+    public string TaglineTemplate { get; set; } = "配信開始日 {date}";
+
+    public string PlaceholderIfNull { get; set; } = "NULL";
+}
+
+public class Replacement
+{
+    public bool EnableGenreReplacement { get; set; }
+
+    public string RawGenreReplacementTable
     {
-        // set default options here
-        Options = SomeOptions.AnotherOption;
-        TrueFalseSetting = true;
-        AnInteger = 2;
-        AString = "string";
+        get => EncodeTable(GenreReplacementTable);
+        set => GenreReplacementTable = DecodeTable(value);
     }
 
-    /// <summary>
-    /// Gets or sets a value indicating whether some true or false setting is enabled..
-    /// </summary>
-    public bool TrueFalseSetting { get; set; }
+    [JsonIgnore]
+    [XmlIgnore]
+    public Dictionary<string, string> GenreReplacementTable { get; private set; } = new(0);
 
-    /// <summary>
-    /// Gets or sets an integer setting.
-    /// </summary>
-    public int AnInteger { get; set; }
+    public bool EnableActorReplacement { get; set; }
 
-    /// <summary>
-    /// Gets or sets a string setting.
-    /// </summary>
-    public string AString { get; set; }
+    public string RawActorReplacementTable
+    {
+        get => EncodeTable(ActorReplacementTable);
+        set => ActorReplacementTable = DecodeTable(value);
+    }
 
-    /// <summary>
-    /// Gets or sets an enum option.
-    /// </summary>
-    public SomeOptions Options { get; set; }
+    [JsonIgnore]
+    [XmlIgnore]
+    public Dictionary<string, string> ActorReplacementTable { get; private set; } = new(0);
+
+    private static Dictionary<string, string> DecodeTable(string rawTable) =>
+        rawTable.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.None)
+            .Select(line => line.Split(":"))
+            .Where(line => line.Length == 2)
+            .ToDictionary(values => values[0], values => values[1]);
+
+    private static string EncodeTable(Dictionary<string, string> table) =>
+        string.Join("\n", table.Select(pair => $"{pair.Key}:{pair.Value}"));
 }
